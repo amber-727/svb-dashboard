@@ -45,10 +45,19 @@
       padding: 16px;
       max-height: calc(100vh - 84px);
       overflow-y: auto;
-      scrollbar-width: none;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
       z-index: 10;
     }
-    #filter-panel::-webkit-scrollbar { display: none; }
+    #filter-panel::-webkit-scrollbar { width: 4px; }
+    #filter-panel::-webkit-scrollbar-track { background: transparent; }
+    #filter-panel::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 4px;
+      transition: background 0.5s;
+    }
+    #filter-panel.is-scrolling { scrollbar-color: rgba(0, 58, 97, 0.22) transparent; }
+    #filter-panel.is-scrolling::-webkit-scrollbar-thumb { background: rgba(0, 58, 97, 0.22); }
 
     .panel-header {
       display: flex;
@@ -116,16 +125,37 @@
       font-weight: 600;
       letter-spacing: 0.07em;
       text-transform: uppercase;
-      color: #8aacc0;
+      color: #4a6b82;
       margin-bottom: 4px;
       padding: 0 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
     }
+    .filter-toggle {
+      background: none;
+      border: none;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .chevron {
+      color: #7a9bb3;
+      flex-shrink: 0;
+      margin-left: 4px;
+      transition: transform 0.2s ease;
+    }
+    .filter-section.collapsed .chevron { transform: rotate(-90deg); }
 
     .filter-options {
       display: flex;
       flex-direction: column;
       gap: 1px;
+      overflow: hidden;
+      max-height: 600px;
+      transition: max-height 0.22s ease-out;
     }
+    .filter-section.collapsed .filter-options { max-height: 0; }
 
     .filter-btn {
       display: flex;
@@ -154,13 +184,20 @@
     }
     .filter-btn .count {
       font-size: 10px;
-      color: #aabccc;
+      color: #6a8aa2;
       flex-shrink: 0;
       margin-left: 4px;
     }
-    .filter-btn.active .count {
+    .filter-btn.active .count { display: none; }
+    .filter-btn .btn-deselect {
+      display: none;
+      font-size: 14px;
+      line-height: 1;
       color: #6a8fa8;
+      flex-shrink: 0;
+      margin-left: 4px;
     }
+    .filter-btn.active .btn-deselect { display: flex; align-items: center; }
 
     .btn-left {
       display: flex;
@@ -186,6 +223,22 @@
       background: rgba(0, 58, 97, 0.07);
       margin: 10px 0;
     }
+
+    /* ─── Panel clear-all link ───────────────── */
+    #panel-clear-all { text-align: right; margin: -6px 0 10px; }
+    #panel-clear-btn {
+      font-size: 11px;
+      font-weight: 500;
+      color: #8aacc0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.12s;
+    }
+    #panel-clear-btn:hover { color: #003A61; }
 
     /* ─── Detail panel ────────────────────────── */
     #detail-panel {
@@ -536,36 +589,40 @@
     <input id="search-input" type="search" placeholder="Search by name…" autocomplete="off" spellcheck="false">
   </div>
 
+  <div id="panel-clear-all" style="display:none">
+    <button id="panel-clear-btn">Clear all</button>
+  </div>
+
   <div class="filter-section">
-    <div class="filter-label">Department</div>
+    <button class="filter-label filter-toggle" aria-expanded="true">Department<svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="filter-options" id="dept-options"></div>
   </div>
 
   <div class="divider"></div>
 
   <div class="filter-section">
-    <div class="filter-label">Seniority</div>
+    <button class="filter-label filter-toggle" aria-expanded="true">Seniority<svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="filter-options" id="seniority-options"></div>
   </div>
 
   <div class="divider"></div>
 
   <div class="filter-section">
-    <div class="filter-label">Location</div>
+    <button class="filter-label filter-toggle" aria-expanded="true">Location<svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="filter-options" id="location-options"></div>
   </div>
 
   <div class="divider"></div>
 
   <div class="filter-section">
-    <div class="filter-label">Team</div>
+    <button class="filter-label filter-toggle" aria-expanded="true">Team<svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="filter-options" id="team-options"></div>
   </div>
 
   <div class="divider"></div>
 
   <div class="filter-section">
-    <div class="filter-label">Tenure</div>
+    <button class="filter-label filter-toggle" aria-expanded="true">Tenure<svg class="chevron" width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="filter-options" id="tenure-options"></div>
   </div>
 
@@ -806,6 +863,15 @@ function init(nodes) {
     });
   }
 
+  // ── Clip paths (one per node for circular photo crop) ───
+  const defs = svg.append('defs');
+  nodes.forEach(d => {
+    defs.append('clipPath')
+      .attr('id', `clip-${d.id}`)
+      .append('circle')
+        .attr('r', Math.max(d.r - 0.5, 0));
+  });
+
   // ── Node groups ──────────────────────────────
   const nodeGroups = nodeLayer.selectAll('.node')
     .data(nodes)
@@ -823,15 +889,15 @@ function init(nodes) {
       .on('mouseout',  hideTooltip)
       .on('click', onNodeClick);
 
+  // Layer 1 — tint fill circle (always visible)
   nodeGroups.append('circle')
     .attr('r', d => d.r)
-    .attr('fill', d => hexRgba(d.color, 0.06))
-    .attr('stroke', d => d.color)
-    .attr('stroke-width', 1.4)
-    .attr('stroke-opacity', 0.5);
+    .attr('fill', d => hexRgba(d.color, 0.08));
 
-  nodeGroups.filter(d => d.r >= 10)
+  // Layer 2 — initials fallback (shown until photo loads)
+  nodeGroups.filter(d => d.r >= 8)
     .append('text')
+    .attr('class', 'node-initials')
     .text(d => initials(d.name))
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'central')
@@ -839,7 +905,43 @@ function init(nodes) {
     .attr('font-size', d => Math.max(Math.floor(d.r * 0.54), 7))
     .attr('font-weight', '500')
     .attr('fill', d => d.color)
-    .attr('fill-opacity', 0.55)
+    .attr('fill-opacity', 0.6)
+    .attr('pointer-events', 'none');
+
+  // Layer 3 — headshot photo (loads async, fades in, hides initials on success)
+  nodeGroups.filter(d => d.headshotFilename)
+    .append('image')
+    .attr('class', 'node-photo')
+    .attr('href', d => `headshots/${d.headshotFilename}`)
+    .attr('x', d => -d.r)
+    .attr('y', d => -d.r)
+    .attr('width',  d => d.r * 2)
+    .attr('height', d => d.r * 2)
+    .attr('preserveAspectRatio', 'xMidYMid slice')
+    .attr('clip-path', d => `url(#clip-${d.id})`)
+    .style('opacity', 0)
+    .attr('pointer-events', 'none')
+    .each(function(d) {
+      const imgEl = this;
+      const parentG = this.parentNode;
+      const img = new Image();
+      img.onload = () => {
+        d3.select(imgEl).style('opacity', 1);
+        d3.select(parentG).select('.node-initials').style('display', 'none');
+      };
+      img.onerror = () => {
+        d3.select(imgEl).remove();
+      };
+      img.src = `headshots/${d.headshotFilename}`;
+    });
+
+  // Layer 4 — stroke ring on top of photo
+  nodeGroups.append('circle')
+    .attr('r', d => d.r)
+    .attr('fill', 'none')
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', 1.4)
+    .attr('stroke-opacity', 0.5)
     .attr('pointer-events', 'none');
 
   function ticked() {
@@ -927,6 +1029,7 @@ function init(nodes) {
         <span>${label}</span>
       </span>
       <span class="count">${count}</span>
+      <span class="btn-deselect" aria-hidden="true">×</span>
     `;
     btn.addEventListener('click', () => toggleFilter(type, value, btn));
     container.appendChild(btn);
@@ -983,6 +1086,7 @@ function init(nodes) {
     container.innerHTML = '';
     const any = state.filter || state.search;
     clearBtn.style.display = any ? 'block' : 'none';
+    document.getElementById('panel-clear-all').style.display = any ? 'block' : 'none';
     if (!any) return;
     if (state.search)  addChip(container, `"${state.search}"`, clearSearch);
     if (state.filter)  addChip(container, truncate(state.filter.value, 22), clearFilter);
@@ -1113,6 +1217,34 @@ function init(nodes) {
       .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.07))
       .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.07));
     simulation.alpha(0.3).restart();
+  });
+
+  // ── Scrollbar fade ───────────────────────────
+  let scrollFadeTimer;
+  const filterPanel = document.getElementById('filter-panel');
+  filterPanel.addEventListener('scroll', () => {
+    filterPanel.classList.add('is-scrolling');
+    clearTimeout(scrollFadeTimer);
+    scrollFadeTimer = setTimeout(() => filterPanel.classList.remove('is-scrolling'), 500);
+  });
+
+  // ── Panel-level clear all ────────────────────
+  document.getElementById('panel-clear-btn').addEventListener('click', () => {
+    state.filter = null;
+    state.search = '';
+    document.getElementById('search-input').value = '';
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'));
+    applyFilter();
+  });
+
+  // ── Section collapse toggles ─────────────────
+  document.querySelectorAll('.filter-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.filter-section');
+      const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!isExpanded));
+      section.classList.toggle('collapsed', isExpanded);
+    });
   });
 
 } // end init()
