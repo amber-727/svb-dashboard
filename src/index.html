@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVB People Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f7f8fa;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Canvas ──────────────────────────────── */
+    #canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ─── Shared panel base ───────────────────── */
+    .panel {
+      position: fixed;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 58, 97, 0.09);
+      border-radius: 16px;
+      box-shadow:
+        0 2px 12px rgba(0, 58, 97, 0.07),
+        0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* ─── Filter panel ────────────────────────── */
+    #filter-panel {
+      top: 20px;
+      left: 20px;
+      width: 232px;
+      padding: 16px;
+      max-height: calc(100vh - 84px);
+      overflow-y: auto;
+      scrollbar-width: none;
+      z-index: 10;
+    }
+    #filter-panel::-webkit-scrollbar { display: none; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+    .panel-logo {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .panel-wordmark {
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #003A61;
+      line-height: 1;
+    }
+    .panel-subword {
+      font-weight: 400;
+      color: #7a9bb3;
+      letter-spacing: 0.04em;
+    }
+
+    /* Search */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 15px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #9aabbf;
+    }
+    #search-input {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px 0 31px;
+      border: 1px solid rgba(0, 58, 97, 0.14);
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 12.5px;
+      color: #1a2a3a;
+      background: rgba(255, 255, 255, 0.65);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    #search-input:focus {
+      border-color: #003A61;
+      background: white;
+    }
+    #search-input::placeholder { color: #adbfcc; }
+
+    /* Filter sections */
+    .filter-section { margin-bottom: 13px; }
+    .filter-section:last-child { margin-bottom: 0; }
+
+    .filter-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #8aacc0;
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .filter-options {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 7px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      font-family: inherit;
+      font-size: 12px;
+      color: #2c3f50;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.12s, color 0.12s;
+      width: 100%;
+    }
+    .filter-btn:hover {
+      background: rgba(0, 58, 97, 0.055);
+      color: #003A61;
+    }
+    .filter-btn.active {
+      background: rgba(0, 58, 97, 0.09);
+      color: #003A61;
+      font-weight: 500;
+    }
+    .filter-btn .count {
+      font-size: 10px;
+      color: #aabccc;
+      flex-shrink: 0;
+      margin-left: 4px;
+    }
+    .filter-btn.active .count {
+      color: #6a8fa8;
+    }
+
+    .btn-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+    .btn-left span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dept-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(0, 58, 97, 0.07);
+      margin: 10px 0;
+    }
+
+    /* ─── Detail panel ────────────────────────── */
+    #detail-panel {
+      top: 20px;
+      right: 20px;
+      width: 272px;
+      padding: 20px;
+      display: none;
+      z-index: 10;
+    }
+    #detail-panel.visible { display: block; }
+
+    .detail-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: rgba(0, 58, 97, 0.06);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7a9bb3;
+      transition: background 0.12s, color 0.12s;
+    }
+    .detail-close:hover {
+      background: rgba(0, 58, 97, 0.13);
+      color: #003A61;
+    }
+
+    .detail-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(0, 58, 97, 0.07);
+      border: 2px solid rgba(0, 58, 97, 0.13);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #003A61;
+      overflow: hidden;
+    }
+    .detail-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .detail-name {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #0d1f2d;
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+    .detail-title-text {
+      font-size: 12px;
+      color: #6a8fa8;
+      margin-bottom: 13px;
+      line-height: 1.45;
+    }
+
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 14px;
+    }
+    .detail-tag {
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 20px;
+      background: rgba(0, 58, 97, 0.07);
+      color: #003A61;
+      white-space: nowrap;
+    }
+
+    .detail-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      padding: 12px 0;
+      border-top: 1px solid rgba(0, 58, 97, 0.07);
+      border-bottom: 1px solid rgba(0, 58, 97, 0.07);
+      margin-bottom: 14px;
+    }
+    .detail-meta-row {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      color: #5a7a92;
+      line-height: 1.4;
+    }
+    .detail-meta-row strong {
+      color: #2c3f50;
+      font-weight: 500;
+      min-width: 62px;
+      flex-shrink: 0;
+    }
+
+    .detail-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px;
+      background: #003A61;
+      color: white;
+      border-radius: 9px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.15s;
+    }
+    .detail-link:hover { background: #004f85; }
+
+    /* ─── Stats bar ───────────────────────────── */
+    #stats-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(0, 58, 97, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .stat {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .stat-number {
+      font-size: 14px;
+      font-weight: 600;
+      color: #003A61;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #aabccc;
+      font-weight: 400;
+    }
+
+    .bar-divider {
+      width: 1px;
+      height: 16px;
+      background: rgba(0, 58, 97, 0.1);
+      flex-shrink: 0;
+    }
+
+    .active-filters {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(0, 58, 97, 0.08);
+      color: #003A61;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .chip-x {
+      cursor: pointer;
+      opacity: 0.45;
+      font-size: 13px;
+      line-height: 1;
+      margin-left: 1px;
+      display: flex;
+      align-items: center;
+    }
+    .chip-x:hover { opacity: 0.85; }
+
+    .clear-all-btn {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 500;
+      color: #aabccc;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      transition: color 0.12s, background 0.12s;
+      flex-shrink: 0;
+    }
+    .clear-all-btn:hover { color: #003A61; background: rgba(0,58,97,0.05); }
+
+    /* ─── Tooltip ─────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      pointer-events: none;
+      background: rgba(13, 31, 45, 0.9);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 7px 11px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.1s;
+      z-index: 200;
+      line-height: 1.3;
+    }
+    #tooltip.visible { opacity: 1; }
+    .tip-dept {
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.52);
+      margin-top: 2px;
+    }
+
+    /* ─── Canvas dept labels ──────────────────── */
+    .dept-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      fill: rgba(0, 58, 97, 0.2);
+      pointer-events: none;
+      text-anchor: middle;
+    }
+
+    /* ─── Loading / error state ───────────────── */
+    #load-message {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
+      gap: 14px;
+      z-index: 300;
+    }
+    #load-message .lm-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #003A61;
+    }
+    #load-message .lm-body {
+      font-size: 13px;
+      color: #6a8fa8;
+      max-width: 400px;
+      text-align: center;
+      line-height: 1.7;
+    }
+    #load-message code {
+      background: #eef2f6;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 12px;
+      color: #003A61;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────── Canvas ──────────── -->
+<svg id="canvas"></svg>
+
+<!-- ──────────── Filter panel ──────────── -->
+<div class="panel" id="filter-panel">
+
+  <div class="panel-header">
+    <svg class="panel-logo" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+      <rect width="22" height="22" rx="5" fill="#003A61"/>
+      <text x="11" y="15.5" font-family="Inter,sans-serif" font-size="8.5" font-weight="700"
+            fill="white" text-anchor="middle" letter-spacing="0.3">SVB</text>
+    </svg>
+    <div>
+      <div class="panel-wordmark">People <span class="panel-subword">Intelligence</span></div>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <svg class="search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none">
+      <circle cx="5" cy="5" r="3.8" stroke="currentColor" stroke-width="1.35"/>
+      <path d="M9 9L12 12" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+    </svg>
+    <input id="search-input" type="search" placeholder="Search by name…" autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="filter-section">
+    <div class="filter-label">Department</div>
+    <div class="filter-options" id="dept-options"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="filter-section">
+    <div class="filter-label">Seniority</div>
+    <div class="filter-options" id="seniority-options"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="filter-section">
+    <div class="filter-label">Location</div>
+    <div class="filter-options" id="location-options"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="filter-section">
+    <div class="filter-label">Team</div>
+    <div class="filter-options" id="team-options"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="filter-section">
+    <div class="filter-label">Tenure</div>
+    <div class="filter-options" id="tenure-options"></div>
+  </div>
+
+</div>
+
+<!-- ──────────── Detail panel ──────────── -->
+<div class="panel" id="detail-panel">
+  <button class="detail-close" id="detail-close" aria-label="Close">
+    <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+      <path d="M1 1L8 8M8 1L1 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <div class="detail-avatar" id="detail-avatar"></div>
+  <div class="detail-name" id="detail-name"></div>
+  <div class="detail-title-text" id="detail-title"></div>
+  <div class="detail-tags" id="detail-tags"></div>
+  <div class="detail-meta" id="detail-meta"></div>
+  <a href="#" class="detail-link" id="detail-link" target="_blank" rel="noopener">
+    View Profile
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+      <path d="M2 9L9 2M9 2H4M9 2V7" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+</div>
+
+<!-- ──────────── Stats bar ──────────── -->
+<div id="stats-bar">
+  <div class="stat">
+    <span class="stat-number" id="stat-visible">—</span>
+    <span class="stat-label">people</span>
+  </div>
+  <div class="bar-divider"></div>
+  <div class="stat">
+    <span class="stat-number" id="stat-depts">5</span>
+    <span class="stat-label">departments</span>
+  </div>
+  <div class="bar-divider"></div>
+  <div class="active-filters" id="active-filters"></div>
+  <button class="clear-all-btn" id="clear-all" style="display:none">Clear all</button>
+</div>
+
+<!-- ──────────── Tooltip ──────────── -->
+<div id="tooltip">
+  <div id="tip-name"></div>
+  <div class="tip-dept" id="tip-dept"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────
+// DEPT + SENIORITY CONFIG
+// ─────────────────────────────────────────────────
+
+const DEPT_CONFIG = {
+  'Commercial Banking':                     { id: 'CB',  color: '#003A61' },
+  'Private Banking & Wealth Management':    { id: 'PB',  color: '#2A7A58' },
+  'Investment Banking':                     { id: 'IB',  color: '#1A5C8A' },
+  'Asset Management & Investment Services': { id: 'AM',  color: '#3D8B6E' },
+  'Global Fund Banking':                    { id: 'GFB', color: '#0D4C73' },
+};
+
+const DEPT_NAMES = Object.keys(DEPT_CONFIG);
+
+const SENIORITY_RADIUS = {
+  'EVP & President': 22,
+  'SVP':             17,
+  'VP':              13,
+  'Director':        10,
+  'Manager':          8,
+  'IC':               6,
+};
+
+// Used to sort the seniority filter buttons top → bottom
+const SENIORITY_ORDER = ['EVP & President', 'SVP', 'VP', 'Director', 'Manager', 'IC'];
+
+const TENURE_RANGES = [
+  { label: 'Under 3 years',  test: n => n.tenure < 3 },
+  { label: '3–7 years',      test: n => n.tenure >= 3  && n.tenure <= 7  },
+  { label: '8–12 years',     test: n => n.tenure >= 8  && n.tenure <= 12 },
+  { label: '13+ years',      test: n => n.tenure >= 13 },
+];
+
+// Cluster center positions as fraction of viewport
+const CENTERS = {
+  CB:  { cx: 0.22, cy: 0.44 },
+  AM:  { cx: 0.52, cy: 0.35 },
+  PB:  { cx: 0.36, cy: 0.67 },
+  GFB: { cx: 0.68, cy: 0.45 },
+  IB:  { cx: 0.62, cy: 0.22 },
+};
+
+// ─────────────────────────────────────────────────
+// LOAD CSV → INIT
+// ─────────────────────────────────────────────────
+
+d3.csv('../data/svb-employees-final.csv').then(rawRows => {
+  const nodes = rawRows.map(row => {
+    const deptConf = DEPT_CONFIG[row.department] || DEPT_CONFIG['Commercial Banking'];
+    return {
+      id:              row.id,
+      name:            row.name,
+      title:           row.title,
+      seniority:       row.seniority,
+      department:      row.department,
+      team:            row.team,
+      location:        row.location,
+      tenure:          parseInt(row.tenure, 10) || 0,
+      reportsTo:       row.reportsTo,
+      headshotFilename: row.headshotFilename,
+      profileUrl:      row.profileUrl,
+      deptId:          deptConf.id,
+      color:           deptConf.color,
+      r:               SENIORITY_RADIUS[row.seniority] || 6,
+    };
+  });
+
+  init(nodes);
+
+}).catch(() => {
+  document.getElementById('load-message').style.display = 'flex';
+});
+
+// ─────────────────────────────────────────────────
+// INIT — runs after CSV loads
+// ─────────────────────────────────────────────────
+
+function init(nodes) {
+  // Update stats bar with real count
+  document.getElementById('stat-visible').textContent = nodes.length;
+
+  // ── D3 setup ────────────────────────────────
+  const svg = d3.select('#canvas');
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+  svg.attr('width', W).attr('height', H);
+
+  const labelLayer = svg.append('g').attr('class', 'labels');
+  const nodeLayer  = svg.append('g').attr('class', 'nodes');
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('charge',  d3.forceManyBody().strength(-20).distanceMax(200))
+    .force('collide', d3.forceCollide(d => d.r + 2.5).strength(0.85).iterations(2))
+    .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.07))
+    .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.07))
+    .alphaDecay(0.012)
+    .velocityDecay(0.4)
+    .on('tick', ticked);
+
+  // ── Department labels ────────────────────────
+  DEPT_NAMES.forEach(dept => {
+    const id = DEPT_CONFIG[dept].id;
+    labelLayer.append('text')
+      .attr('class', 'dept-label')
+      .attr('data-dept', id)
+      .attr('x', CENTERS[id].cx * W)
+      .attr('y', CENTERS[id].cy * H - 60)
+      .text(dept.split(' ').slice(0, 2).join(' '));
+  });
+
+  // ── Node groups ──────────────────────────────
+  const nodeGroups = nodeLayer.selectAll('.node')
+    .data(nodes)
+    .join('g')
+      .attr('class', 'node')
+      .style('cursor', 'pointer')
+      .call(
+        d3.drag()
+          .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+          .on('drag',  (e, d) => { d.fx = e.x; d.fy = e.y; })
+          .on('end',   (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; })
+      )
+      .on('mouseover', showTooltip)
+      .on('mousemove', moveTooltip)
+      .on('mouseout',  hideTooltip)
+      .on('click', onNodeClick);
+
+  nodeGroups.append('circle')
+    .attr('r', d => d.r)
+    .attr('fill', d => hexRgba(d.color, 0.06))
+    .attr('stroke', d => d.color)
+    .attr('stroke-width', 1.4)
+    .attr('stroke-opacity', 0.5);
+
+  nodeGroups.filter(d => d.r >= 10)
+    .append('text')
+    .text(d => initials(d.name))
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'central')
+    .attr('font-family', 'Inter, sans-serif')
+    .attr('font-size', d => Math.max(Math.floor(d.r * 0.54), 7))
+    .attr('font-weight', '500')
+    .attr('fill', d => d.color)
+    .attr('fill-opacity', 0.55)
+    .attr('pointer-events', 'none');
+
+  function ticked() {
+    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+  }
+
+  // ── Filter state ─────────────────────────────
+  const state = { filter: null, search: '' };
+
+  function isMatch(node) {
+    if (state.search && !node.name.toLowerCase().includes(state.search)) return false;
+    if (!state.filter) return true;
+    const { type, value } = state.filter;
+    if (type === 'dept')      return node.department === value;
+    if (type === 'seniority') return node.seniority  === value;
+    if (type === 'location')  return node.location   === value;
+    if (type === 'team')      return node.team        === value;
+    if (type === 'tenure')    return TENURE_RANGES.find(r => r.label === value)?.test(node) ?? true;
+    return true;
+  }
+
+  function applyFilter() {
+    const any = state.filter || state.search;
+
+    nodeGroups.transition().duration(380).ease(d3.easeCubicOut)
+      .style('opacity', d => isMatch(d) ? 1 : 0.1);
+
+    if (!any) {
+      simulation
+        .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.07))
+        .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.07));
+    } else if (state.filter?.type === 'dept') {
+      // Matching dept clusters tighter; non-matching drifts to edges
+      const id = DEPT_CONFIG[state.filter.value]?.id;
+      simulation
+        .force('x', d3.forceX(d => d.deptId === id ? CENTERS[id].cx * W : (d.x < W / 2 ? W * 0.04 : W * 0.96))
+          .strength(d => d.deptId === id ? 0.2 : 0.04))
+        .force('y', d3.forceY(d => d.deptId === id ? CENTERS[id].cy * H : (d.y < H / 2 ? H * 0.04 : H * 0.96))
+          .strength(d => d.deptId === id ? 0.2 : 0.04));
+    } else {
+      // All other filters: matching nodes gather center, non-matching drift out
+      simulation
+        .force('x', d3.forceX(d => isMatch(d) ? W / 2 : (d.x < W / 2 ? W * 0.04 : W * 0.96))
+          .strength(d => isMatch(d) ? 0.12 : 0.04))
+        .force('y', d3.forceY(d => isMatch(d) ? H / 2 : (d.y < H / 2 ? H * 0.04 : H * 0.96))
+          .strength(d => isMatch(d) ? 0.12 : 0.04));
+    }
+
+    simulation.alpha(0.4).restart();
+
+    document.getElementById('stat-visible').textContent = nodes.filter(isMatch).length;
+    renderChips();
+  }
+
+  function toggleFilter(type, value, btn) {
+    const same = state.filter?.type === type && state.filter?.value === value;
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'));
+    state.filter = same ? null : { type, value };
+    if (!same) btn.classList.add('active');
+    applyFilter();
+  }
+
+  // ── Populate filter panels ───────────────────
+
+  function makeBtn(container, type, value, label, count, dot) {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn';
+    btn.dataset.type  = type;
+    btn.dataset.value = value;
+    btn.innerHTML = `
+      <span class="btn-left">
+        ${dot ? `<span class="dept-dot" style="background:${dot}"></span>` : ''}
+        <span>${label}</span>
+      </span>
+      <span class="count">${count}</span>
+    `;
+    btn.addEventListener('click', () => toggleFilter(type, value, btn));
+    container.appendChild(btn);
+  }
+
+  // Department — fixed order, real counts
+  const deptEl = document.getElementById('dept-options');
+  DEPT_NAMES.forEach(dept => {
+    const conf  = DEPT_CONFIG[dept];
+    const count = nodes.filter(n => n.department === dept).length;
+    const label = dept.length > 26 ? dept.split(' ').slice(0, 2).join(' ') + '…' : dept;
+    makeBtn(deptEl, 'dept', dept, label, count, conf.color);
+  });
+
+  // Seniority — fixed top→bottom order, real counts
+  const senEl = document.getElementById('seniority-options');
+  SENIORITY_ORDER.forEach(s => {
+    const count = nodes.filter(n => n.seniority === s).length;
+    if (count > 0) makeBtn(senEl, 'seniority', s, s, count, null);
+  });
+
+  // Location — sorted by count, city names only
+  const locEl = document.getElementById('location-options');
+  const locCounts = {};
+  nodes.forEach(n => { if (n.location) locCounts[n.location] = (locCounts[n.location] || 0) + 1; });
+  Object.entries(locCounts)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([loc, count]) => makeBtn(locEl, 'location', loc, loc, count, null));
+
+  // Team — sorted by count, min 2 people
+  const teamEl = document.getElementById('team-options');
+  const teamCounts = {};
+  nodes.forEach(n => { if (n.team) teamCounts[n.team] = (teamCounts[n.team] || 0) + 1; });
+  Object.entries(teamCounts)
+    .filter(([, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .forEach(([team, count]) => {
+      const label = team.length > 26 ? team.slice(0, 25) + '…' : team;
+      makeBtn(teamEl, 'team', team, label, count, null);
+    });
+
+  // Tenure — fixed ranges from CSV tenure field
+  const tenureEl = document.getElementById('tenure-options');
+  TENURE_RANGES.forEach(range => {
+    const count = nodes.filter(range.test).length;
+    if (count > 0) makeBtn(tenureEl, 'tenure', range.label, range.label, count, null);
+  });
+
+  // ── Chips + clear ────────────────────────────
+
+  function renderChips() {
+    const container = document.getElementById('active-filters');
+    const clearBtn  = document.getElementById('clear-all');
+    container.innerHTML = '';
+    const any = state.filter || state.search;
+    clearBtn.style.display = any ? 'block' : 'none';
+    if (!any) return;
+    if (state.search)  addChip(container, `"${state.search}"`, clearSearch);
+    if (state.filter)  addChip(container, truncate(state.filter.value, 22), clearFilter);
+  }
+
+  function addChip(container, label, onClick) {
+    const div = document.createElement('div');
+    div.className = 'filter-chip';
+    div.innerHTML = `${label}<span class="chip-x" title="Remove">×</span>`;
+    div.querySelector('.chip-x').addEventListener('click', onClick);
+    container.appendChild(div);
+  }
+
+  function clearSearch() {
+    state.search = '';
+    document.getElementById('search-input').value = '';
+    applyFilter();
+  }
+  function clearFilter() {
+    state.filter = null;
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'));
+    applyFilter();
+  }
+
+  document.getElementById('clear-all').addEventListener('click', () => {
+    state.filter = null;
+    state.search = '';
+    document.getElementById('search-input').value = '';
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'));
+    applyFilter();
+  });
+
+  // ── Search ───────────────────────────────────
+
+  document.getElementById('search-input').addEventListener('input', e => {
+    state.search = e.target.value.toLowerCase().trim();
+    state.filter = null;
+    document.querySelectorAll('.filter-btn.active').forEach(b => b.classList.remove('active'));
+    applyFilter();
+  });
+
+  // ── Detail panel ─────────────────────────────
+
+  function onNodeClick(event, d) {
+    event.stopPropagation();
+    openDetail(d);
+  }
+
+  function openDetail(d) {
+    // Avatar: try headshot image, fall back to initials
+    const avatar = document.getElementById('detail-avatar');
+    if (d.headshotFilename) {
+      avatar.innerHTML = `<img src="../headshots/${d.headshotFilename}" alt="${d.name}"
+        onerror="this.parentElement.textContent='${initials(d.name)}'">`;
+    } else {
+      avatar.textContent = initials(d.name);
+    }
+
+    document.getElementById('detail-name').textContent  = d.name;
+    document.getElementById('detail-title').textContent = d.title;
+
+    const tags = document.getElementById('detail-tags');
+    tags.innerHTML = '';
+    [d.seniority, d.department.split('&')[0].trim(), d.location].filter(Boolean).forEach(t => {
+      const s = document.createElement('span');
+      s.className   = 'detail-tag';
+      s.textContent = t;
+      tags.appendChild(s);
+    });
+
+    const tenureText = d.tenure === 1 ? '1 year' : `${d.tenure} years`;
+    const metaRows = [
+      ['Department', d.department],
+      ['Team',       d.team     || '—'],
+      ['Location',   d.location || '—'],
+      ['Tenure',     tenureText + ' at SVB'],
+    ];
+    document.getElementById('detail-meta').innerHTML = metaRows
+      .map(([k, v]) => `<div class="detail-meta-row"><strong>${k}</strong><span>${v}</span></div>`)
+      .join('');
+
+    const link = document.getElementById('detail-link');
+    link.href = d.profileUrl || '#';
+
+    document.getElementById('detail-panel').classList.add('visible');
+  }
+
+  document.getElementById('detail-close').addEventListener('click', () => {
+    document.getElementById('detail-panel').classList.remove('visible');
+  });
+
+  svg.on('click', () => {
+    document.getElementById('detail-panel').classList.remove('visible');
+  });
+
+  // ── Tooltip ──────────────────────────────────
+
+  const tooltip = document.getElementById('tooltip');
+
+  function showTooltip(event, d) {
+    document.getElementById('tip-name').textContent = d.name;
+    document.getElementById('tip-dept').textContent = d.title
+      ? truncate(d.title, 48)
+      : d.seniority + ' · ' + d.department.split(' ')[0];
+    tooltip.classList.add('visible');
+    moveTooltip(event);
+  }
+  function moveTooltip(event) {
+    tooltip.style.left = (event.clientX + 14) + 'px';
+    tooltip.style.top  = (event.clientY - 42) + 'px';
+  }
+  function hideTooltip() {
+    tooltip.classList.remove('visible');
+  }
+
+  // ── Resize ───────────────────────────────────
+
+  window.addEventListener('resize', () => {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    svg.attr('width', W).attr('height', H);
+
+    labelLayer.selectAll('.dept-label').each(function() {
+      const id = this.dataset.dept;
+      if (!id) return;
+      d3.select(this)
+        .attr('x', CENTERS[id].cx * W)
+        .attr('y', CENTERS[id].cy * H - 60);
+    });
+
+    simulation
+      .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.07))
+      .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.07));
+    simulation.alpha(0.3).restart();
+  });
+
+} // end init()
+
+// ─────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────
+
+function initials(name) {
+  return name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+}
+
+function hexRgba(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function truncate(str, max) {
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+</script>
+
+<!-- Shown only if CSV fails to load (e.g. opened via file:// without a server) -->
+<div id="load-message" style="display:none">
+  <div class="lm-title">Unable to load employee data</div>
+  <div class="lm-body">
+    Open this page through a local web server, not directly from a file.<br><br>
+    In Terminal, run:<br>
+    <code>cd /Users/amberhearn/svb-dashboard && python3 -m http.server 8000</code><br><br>
+    Then open <code>http://localhost:8000/src/</code> in your browser.
+  </div>
+</div>
+
+</body>
+</html>
