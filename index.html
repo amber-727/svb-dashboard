@@ -428,6 +428,45 @@
       margin-top: 2px;
     }
 
+    /* ─── Pan cursor on canvas background ───────── */
+    #canvas { cursor: grab; }
+    #canvas:active { cursor: grabbing; }
+
+    /* ─── Zoom controls ──────────────────────── */
+    #zoom-controls {
+      position: fixed;
+      bottom: 64px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 10;
+    }
+
+    .zoom-btn {
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(0, 58, 97, 0.09);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 2px 12px rgba(0, 58, 97, 0.07), 0 1px 3px rgba(0, 0, 0, 0.04);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #003A61;
+      font-size: 20px;
+      font-weight: 300;
+      line-height: 1;
+      font-family: inherit;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .zoom-btn:hover  { background: rgba(255, 255, 255, 0.97); }
+    .zoom-btn:active { background: rgba(0, 58, 97, 0.07); }
+
     /* ─── Canvas dept labels ──────────────────── */
     .dept-label {
       font-family: 'Inter', sans-serif;
@@ -554,6 +593,12 @@
   </a>
 </div>
 
+<!-- ──────────── Zoom controls ──────────── -->
+<div id="zoom-controls">
+  <button class="zoom-btn" id="zoom-in"  aria-label="Zoom in">+</button>
+  <button class="zoom-btn" id="zoom-out" aria-label="Zoom out">−</button>
+</div>
+
 <!-- ──────────── Stats bar ──────────── -->
 <div id="stats-bar">
   <div class="stat">
@@ -624,7 +669,7 @@ const CENTERS = {
 // LOAD CSV → INIT
 // ─────────────────────────────────────────────────
 
-d3.csv('../data/svb-employees-final.csv').then(rawRows => {
+d3.csv('/data/svb-employees-final.csv').then(rawRows => {
   const nodes = rawRows.map(row => {
     const deptConf = DEPT_CONFIG[row.department] || DEPT_CONFIG['Commercial Banking'];
     return {
@@ -665,8 +710,26 @@ function init(nodes) {
   let H = window.innerHeight;
   svg.attr('width', W).attr('height', H);
 
-  const labelLayer = svg.append('g').attr('class', 'labels');
-  const nodeLayer  = svg.append('g').attr('class', 'nodes');
+  // Single group that receives the zoom transform — both layers move together
+  const zoomContainer = svg.append('g').attr('class', 'zoom-container');
+  const labelLayer    = zoomContainer.append('g').attr('class', 'labels');
+  const nodeLayer     = zoomContainer.append('g').attr('class', 'nodes');
+
+  // ── Zoom behavior ────────────────────────────
+  const zoom = d3.zoom()
+    .scaleExtent([0.15, 6])
+    .on('zoom', event => zoomContainer.attr('transform', event.transform));
+
+  svg.call(zoom);
+
+  // Zoom buttons (+ / −)
+  const ZOOM_STEP = 1.5;
+  document.getElementById('zoom-in').addEventListener('click', () => {
+    svg.transition().duration(280).ease(d3.easeCubicOut).call(zoom.scaleBy, ZOOM_STEP);
+  });
+  document.getElementById('zoom-out').addEventListener('click', () => {
+    svg.transition().duration(280).ease(d3.easeCubicOut).call(zoom.scaleBy, 1 / ZOOM_STEP);
+  });
 
   const simulation = d3.forceSimulation(nodes)
     .force('charge',  d3.forceManyBody().strength(-20).distanceMax(200))
@@ -905,7 +968,7 @@ function init(nodes) {
     // Avatar: try headshot image, fall back to initials
     const avatar = document.getElementById('detail-avatar');
     if (d.headshotFilename) {
-      avatar.innerHTML = `<img src="../headshots/${d.headshotFilename}" alt="${d.name}"
+      avatar.innerHTML = `<img src="headshots/${d.headshotFilename}" alt="${d.name}"
         onerror="this.parentElement.textContent='${initials(d.name)}'">`;
     } else {
       avatar.textContent = initials(d.name);
@@ -975,6 +1038,9 @@ function init(nodes) {
     H = window.innerHeight;
     svg.attr('width', W).attr('height', H);
 
+    // Reset zoom to identity so cluster centers re-anchor to the new viewport size
+    svg.call(zoom.transform, d3.zoomIdentity);
+
     labelLayer.selectAll('.dept-label').each(function() {
       const id = this.dataset.dept;
       if (!id) return;
@@ -1018,7 +1084,7 @@ function truncate(str, max) {
     Open this page through a local web server, not directly from a file.<br><br>
     In Terminal, run:<br>
     <code>cd /Users/amberhearn/svb-dashboard && python3 -m http.server 8000</code><br><br>
-    Then open <code>http://localhost:8000/src/</code> in your browser.
+    Then open <code>http://localhost:8000/</code> in your browser.
   </div>
 </div>
 
