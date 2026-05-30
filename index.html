@@ -722,11 +722,11 @@ const TENURE_RANGES = [
 
 // Cluster center positions as fraction of viewport
 const CENTERS = {
-  CB:  { cx: 0.22, cy: 0.44 },
-  AM:  { cx: 0.52, cy: 0.35 },
-  PB:  { cx: 0.36, cy: 0.67 },
-  GFB: { cx: 0.68, cy: 0.45 },
-  IB:  { cx: 0.62, cy: 0.22 },
+  CB:  { cx: 0.22, cy: 0.47 },
+  AM:  { cx: 0.50, cy: 0.28 },
+  PB:  { cx: 0.38, cy: 0.74 },
+  GFB: { cx: 0.78, cy: 0.56 },
+  IB:  { cx: 0.70, cy: 0.14 },
 };
 
 // ─────────────────────────────────────────────────
@@ -796,10 +796,10 @@ function init(nodes) {
   });
 
   const simulation = d3.forceSimulation(nodes)
-    .force('charge',  d3.forceManyBody().strength(-20).distanceMax(200))
-    .force('collide', d3.forceCollide(d => d.r + 2.5).strength(0.85).iterations(2))
-    .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.07))
-    .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.07))
+    .force('charge',  d3.forceManyBody().strength(-28).distanceMax(300))
+    .force('collide', d3.forceCollide(d => d.r + 3.5).strength(0.85).iterations(3))
+    .force('x', d3.forceX(d => CENTERS[d.deptId].cx * W).strength(0.09))
+    .force('y', d3.forceY(d => CENTERS[d.deptId].cy * H).strength(0.09))
     .alphaDecay(0.012)
     .velocityDecay(0.4)
     .on('tick', ticked);
